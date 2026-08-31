@@ -122,6 +122,14 @@ body {
   font-size: 0.85rem;
   color: var(--muted);
 }
+.retention-caveat {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+  font-size: 0.85rem;
+  color: var(--muted);
+  max-width: 62ch;
+}
 
 .legend-swatch {
   display: inline-block;
