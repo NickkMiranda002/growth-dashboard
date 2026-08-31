@@ -4,12 +4,6 @@ import { Order } from "@/lib/types";
 
 export const revalidate = 300;
 
-function monthLabel(key: string): string {
-  const [year, month] = key.split("-");
-  const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${names[Number(month) - 1]} ${year.slice(2)}`;
-}
-
 function ErrorState({ message }: { message: string }) {
   return (
     <main className="page">
@@ -19,7 +13,7 @@ function ErrorState({ message }: { message: string }) {
       <div className="error-box">
         <h2>Data source is unreachable</h2>
         <p>
-          The request to fakestoreapi.com failed, so there are no numbers to show.
+          The request to dummyjson.com failed, so there are no numbers to show.
           This page fails loudly on purpose: a dashboard that silently renders
           zeros is worse than one that says it is broken.
         </p>
@@ -42,7 +36,7 @@ export default async function Page() {
 
   const m = computeMetrics(orders);
   const maxCategoryRevenue = m.revenueByCategory[0]?.revenue ?? 1;
-  const maxMonthCount = Math.max(1, ...m.ordersByMonth.map((x) => x.count));
+  const maxTopProductRevenue = m.topProducts[0]?.revenue ?? 1;
   const repeatCustomerIds = new Set(
     orders
       .map((o) => o.customerId)
@@ -54,7 +48,7 @@ export default async function Page() {
       <div className="masthead">
         <h1>Growth Dashboard</h1>
         <span className="source-note">
-          Live data from <a href="https://fakestoreapi.com">fakestoreapi.com</a>, cached 5 min
+          Live data from <a href="https://dummyjson.com">dummyjson.com</a>, cached 5 min
         </span>
       </div>
       <p className="lede">
@@ -130,30 +124,20 @@ export default async function Page() {
         </section>
 
         <section>
-          <h2>Orders per month</h2>
-          <p className="section-sub">
-            {m.ordersByMonth.length > 0
-              ? "Only orders that carry a date in the source data"
-              : "The current API response carries no order dates"}
-          </p>
-          {m.ordersByMonth.length > 0 ? (
-            <div className="months">
-              {m.ordersByMonth.map((x) => (
-                <div className="month" key={x.month}>
-                  <span className="month-count">{x.count}</span>
-                  <div
-                    className="month-bar"
-                    style={{ height: `${(x.count / maxMonthCount) * 100}px` }}
-                  />
-                  <span className="month-label">{monthLabel(x.month)}</span>
-                </div>
-              ))}
+          <h2>Top products</h2>
+          <p className="section-sub">By revenue, across every order in the dataset</p>
+          {m.topProducts.map((p) => (
+            <div className="cat-row" key={p.title}>
+              <span title={p.title}>{p.title}</span>
+              <div className="cat-track">
+                <div
+                  className="cat-fill"
+                  style={{ width: `${(p.revenue / maxTopProductRevenue) * 100}%` }}
+                />
+              </div>
+              <span className="cat-value">{formatUsd(p.revenue)}</span>
             </div>
-          ) : (
-            <p className="section-sub">
-              Nothing hidden, nothing faked: when a chart has no data, it says so.
-            </p>
-          )}
+          ))}
         </section>
       </div>
 
@@ -165,7 +149,6 @@ export default async function Page() {
             <tr>
               <th>Order</th>
               <th>Customer</th>
-              <th>Date</th>
               <th>Items</th>
               <th className="num">Total</th>
             </tr>
@@ -183,7 +166,6 @@ export default async function Page() {
                       <span className="badge-returning">returning</span>
                     )}
                   </td>
-                  <td>{o.date ? o.date.toISOString().slice(0, 10) : "no date"}</td>
                   <td>{o.lines.reduce((n, l) => n + l.quantity, 0)}</td>
                   <td className="num">{formatUsd(o.total)}</td>
                 </tr>
