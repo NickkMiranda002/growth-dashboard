@@ -84,6 +84,13 @@ export default async function Page() {
             One order only ({m.customerCount - m.returningCustomers})
           </span>
         </div>
+        {m.returningCustomers === 0 && (
+          <p className="retention-caveat">
+            Reads as 0% because this mock source generates one cart per user, so no
+            customer here has a second order to count. With real order history this
+            same calculation is the number a subscription DTC business runs on.
+          </p>
+        )}
       </div>
 
       <dl className="stats">
