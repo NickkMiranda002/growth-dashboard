@@ -18,13 +18,14 @@ export function computeMetrics(orders: Order[]): Metrics {
   const returningCustomers = [...ordersPerCustomer.values()].filter((n) => n > 1).length;
   const returningShare = customerCount > 0 ? returningCustomers / customerCount : 0;
 
-  // Revenue by category, sorted descending
+  // Revenue by category, sorted descending. Uses lineRevenue (post-discount)
+  // so this always sums to the same total shown in the revenue stat.
   const byCategory = new Map<string, number>();
   for (const o of orders) {
     for (const line of o.lines) {
       byCategory.set(
         line.category,
-        (byCategory.get(line.category) ?? 0) + line.unitPrice * line.quantity
+        (byCategory.get(line.category) ?? 0) + line.lineRevenue
       );
     }
   }
@@ -32,16 +33,20 @@ export function computeMetrics(orders: Order[]): Metrics {
     .map(([category, rev]) => ({ category, revenue: rev }))
     .sort((a, b) => b.revenue - a.revenue);
 
-  // Orders by month, only for orders that actually carry a date
-  const byMonth = new Map<string, number>();
+  // Top products by revenue across all orders
+  const byProduct = new Map<string, { revenue: number; quantity: number }>();
   for (const o of orders) {
-    if (!o.date) continue;
-    const key = `${o.date.getUTCFullYear()}-${String(o.date.getUTCMonth() + 1).padStart(2, "0")}`;
-    byMonth.set(key, (byMonth.get(key) ?? 0) + 1);
+    for (const line of o.lines) {
+      const entry = byProduct.get(line.title) ?? { revenue: 0, quantity: 0 };
+      entry.revenue += line.lineRevenue;
+      entry.quantity += line.quantity;
+      byProduct.set(line.title, entry);
+    }
   }
-  const ordersByMonth = [...byMonth.entries()]
-    .map(([month, count]) => ({ month, count }))
-    .sort((a, b) => a.month.localeCompare(b.month));
+  const topProducts = [...byProduct.entries()]
+    .map(([title, v]) => ({ title, revenue: v.revenue, quantity: v.quantity }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 6);
 
   return {
     revenue,
@@ -51,7 +56,7 @@ export function computeMetrics(orders: Order[]): Metrics {
     returningCustomers,
     returningShare,
     revenueByCategory,
-    ordersByMonth,
+    topProducts,
   };
 }
 
